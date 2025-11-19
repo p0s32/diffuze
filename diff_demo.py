@@ -122,37 +122,6 @@ class ConflictMediatorApp:
             border-left-color: #6c757d;
             background: #f8f9fa;
         }
-        .pp-choice-card {
-            border: 2px solid #e1e5e9;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .pp-choice-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-        }
-        .pp-choice-card.selected {
-            border-color: #667eea;
-            background: #f8f9ff;
-            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-        }
-        .auto-generate-section {
-            background: #e8f5e8;
-            border: 1px solid #c3e6cb;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
-        .manual-input-section {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
         </style>
         """, unsafe_allow_html=True)
         
@@ -204,37 +173,59 @@ class ConflictMediatorApp:
         st.title("📋 Step 1: Problem Identification")
         st.write("Let's understand your conflict situation.")
         
+        # Debug info - remove this in production
+        with st.expander("🔍 Debug Info (will be hidden in final version)", expanded=False):
+            st.write("Current session state:")
+            for key, value in st.session_state.items():
+                st.write(f"- {key}: {value}")
+        
         with st.form("problem_identification"):
             st.write("### 🎯 Problem Details")
             
             problem_desc = st.text_area(
                 "**1. Describe the core problem** (1-2 sentences)",
                 placeholder="e.g., My roommate ignores shared chores",
-                height=100
+                height=100,
+                key="problem_desc_input"
             )
             
             pp_name = st.text_input(
                 "**2. Who is the Problematic Party (PP)?**",
-                placeholder="e.g., Roommate Alex (use pseudonym if preferred)"
+                placeholder="e.g., Roommate Alex (use pseudonym if preferred)",
+                key="pp_name_input"
             )
             
             desired_outcome = st.text_area(
                 "**3. What's your desired outcome?**",
                 placeholder="e.g., Even chore split",
-                height=80
+                height=80,
+                key="desired_outcome_input"
             )
             
             submit_btn = st.form_submit_button("🔍 Analyze Problem")
             
             if submit_btn:
-                if not all([problem_desc.strip(), pp_name.strip(), desired_outcome.strip()]):
-                    st.error("Please fill in all fields.")
+                st.write("🔍 Button was clicked!")  # Debug message
+                
+                # Check if fields are filled
+                if not problem_desc.strip():
+                    st.error("❌ Problem description is empty")
                     return
+                if not pp_name.strip():
+                    st.error("❌ PP name is empty")
+                    return
+                if not desired_outcome.strip():
+                    st.error("❌ Desired outcome is empty")
+                    return
+                
+                st.write("✅ All fields filled, checking for illegal content...")  # Debug message
                 
                 # Validate problem (check for illegal content)
                 if self.contains_illegal_content(problem_desc):
                     st.error("⚠️ This appears to involve illegal activity. Please seek professional help or contact authorities.")
                     return
+                
+                st.write("✅ Problem is valid, creating conflict data...")  # Debug message
                 
                 # Create conflict data
                 conflict_data = ConflictData(
@@ -244,10 +235,16 @@ class ConflictMediatorApp:
                     desired_outcome=desired_outcome.strip()
                 )
                 
+                st.write(f"✅ Conflict data created: {conflict_data.user_id}")  # Debug message
+                
+                # Update session state
                 st.session_state.conflict_data = conflict_data
                 st.session_state.current_stage = ConflictStage.USER_QUESTIONS
                 
+                st.write("✅ Session state updated, redirecting...")  # Debug message
                 st.success("Problem analyzed! Let's dive deeper...")
+                
+                # Force rerun
                 st.rerun()
     
     def contains_illegal_content(self, text: str) -> bool:
@@ -266,6 +263,13 @@ class ConflictMediatorApp:
         
         conflict = st.session_state.conflict_data
         
+        st.info(f"""
+        **Your Current Problem:**
+        - **Issue:** {conflict.problem_description}
+        - **PP:** {conflict.problematic_party}
+        - **Your Goal:** {conflict.desired_outcome}
+        """)
+        
         with st.form("user_questions"):
             st.write("### 🎯 Your Core Questions")
             
@@ -276,21 +280,24 @@ class ConflictMediatorApp:
                     "**1. What facts do you know for sure happened?** (Timeline, no opinions)",
                     value=conflict.user_facts,
                     height=120,
-                    help="Be specific about dates, times, and observable behaviors"
+                    help="Be specific about dates, times, and observable behaviors",
+                    key="user_facts_input"
                 )
                 
                 user_motive = st.text_area(
                     "**2. Why do you think PP is acting this way?** (Their possible motives)",
                     value=conflict.user_motive_theory,
                     height=100,
-                    help="What might be driving their behavior?"
+                    help="What might be driving their behavior?",
+                    key="user_motive_input"
                 )
                 
                 user_attempts = st.text_area(
                     "**3. What have you already tried to fix it, and why failed?**",
                     value=conflict.user_past_attempts,
                     height=100,
-                    help="Previous solutions and why they didn't work"
+                    help="Previous solutions and why they didn't work",
+                    key="user_attempts_input"
                 )
             
             with col2:
@@ -304,9 +311,20 @@ class ConflictMediatorApp:
             submit_btn = st.form_submit_button("💾 Save Your Perspective")
             
             if submit_btn:
-                if not all([user_facts.strip(), user_motive.strip(), user_attempts.strip()]):
-                    st.error("Please answer all questions.")
+                st.write("💾 Save button clicked!")  # Debug message
+                
+                # Validate required fields
+                if not user_facts.strip():
+                    st.error("❌ Please answer question 1")
                     return
+                if not user_motive.strip():
+                    st.error("❌ Please answer question 2")
+                    return
+                if not user_attempts.strip():
+                    st.error("❌ Please answer question 3")
+                    return
+                
+                st.write("✅ All questions answered, updating conflict data...")  # Debug message
                 
                 # Update conflict data
                 conflict.user_facts = user_facts.strip()
@@ -314,7 +332,9 @@ class ConflictMediatorApp:
                 conflict.user_past_attempts = user_attempts.strip()
                 conflict.stage = ConflictStage.PP_INVITATION
                 st.session_state.conflict_data = conflict
+                st.session_state.current_stage = ConflictStage.PP_INVITATION
                 
+                st.write("✅ Conflict data updated, redirecting to PP invitation...")  # Debug message
                 st.success("Your perspective saved! Now let's get PP's side...")
                 st.rerun()
     
@@ -340,8 +360,9 @@ class ConflictMediatorApp:
             st.write("Perfect for quick demos - AI generates realistic PP perspective")
             
             if st.button("🤖 Auto-Generate PP Responses", 
-                       type="secondary" if st.session_state.get('pp_simulation_choice') != 'auto' else "primary",
+                       type="primary",
                        key="auto_generate_btn"):
+                st.write("🤖 Auto-generate button clicked!")  # Debug message
                 st.session_state.pp_simulation_choice = 'auto'
                 st.session_state.pp_simulation_type = PPSimulationType.AUTO_GENERATE
                 self.generate_simulated_pp_responses(conflict)
@@ -353,181 +374,25 @@ class ConflictMediatorApp:
             st.write("You play both sides - enter PP responses as if they completed the survey")
             
             if st.button("✍️ Enter PP Responses Manually", 
-                       type="secondary" if st.session_state.get('pp_simulation_choice') != 'manual' else "primary",
+                       type="secondary",
                        key="manual_input_btn"):
+                st.write("✍️ Manual input button clicked!")  # Debug message
                 st.session_state.pp_simulation_choice = 'manual'
                 st.session_state.pp_simulation_type = PPSimulationType.MANUAL_INPUT
                 st.session_state.show_manual_pp = True
                 st.rerun()
-        
-        # Manual PP Input Section
-        if st.session_state.get('show_manual_pp', False) and st.session_state.get('pp_simulation_choice') == 'manual':
-            self.render_manual_pp_input()
-    
-    def render_manual_pp_input(self):
-        """Render the manual PP input form"""
-        st.write("---")
-        st.write("### 🎭 Manual PP Response Entry")
-        st.write("You're now playing the role of the PP. Answer these questions from their perspective:")
-        
-        conflict = st.session_state.conflict_data
-        
-        # PP Survey Questions (9-question battery)
-        with st.form("pp_manual_responses"):
-            st.write("### 📋 PP Survey Questions")
-            st.write("_Answer as if you are the PP, being honest about your perspective._")
-            
-            # Core Trio
-            st.write("#### 🔍 Core Questions")
-            
-            pp_facts = st.text_area(
-                "**1. What facts do you know about this situation?** (Your timeline)",
-                value=conflict.pp_facts,
-                height=100,
-                help="What actually happened from your perspective?"
-            )
-            
-            pp_motive = st.text_area(
-                "**2. Why do you think this is happening?** (Your view of motives)",
-                value=conflict.pp_motive_theory,
-                height=100,
-                help="What do you think is driving this conflict?"
-            )
-            
-            pp_attempts = st.text_area(
-                "**3. What have you tried to address it?**",
-                value=conflict.pp_past_attempts,
-                height=100,
-                help="What solutions have you attempted?"
-            )
-            
-            st.write("---")
-            st.write("#### 🎯 Deep Dive Questions")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                pp_frustration = st.slider(
-                    "**4. What's your biggest frustration here?** (1-10 intensity)",
-                    min_value=1,
-                    max_value=10,
-                    value=conflict.pp_frustration_level or 5,
-                    help="1 = Minor annoyance, 10 = Extremely frustrated"
-                )
-                
-                pp_ideal_fix = st.text_area(
-                    "**5. What's your ideal fix?**",
-                    value=conflict.pp_ideal_fix,
-                    height=80
-                )
-            
-            with col2:
-                pp_misunderstandings = st.text_area(
-                    "**6. Any misunderstandings you suspect?**",
-                    value=conflict.pp_misunderstandings,
-                    height=80
-                )
-                
-                pp_impact = st.text_area(
-                    "**7. How does this impact you emotionally/financially?**",
-                    value=conflict.pp_impact,
-                    height=80
-                )
-            
-            # Final question
-            pp_compromise = st.checkbox(
-                "**8. Would you compromise on the user's goal (if softened appropriately)?**",
-                value=conflict.pp_compromise,
-                help="Are you willing to find a middle ground?"
-            )
-            
-            st.write("**9. Additional thoughts:** (Optional)")
-            pp_additional = st.text_area(
-                "Any other context you'd like to share?",
-                height=60
-            )
-            
-            submit_col1, submit_col2 = st.columns([1, 6])
-            
-            with submit_col1:
-                if st.form_submit_button("💾 Save PP Responses", type="primary"):
-                    # Validate required fields
-                    if not all([pp_facts.strip(), pp_motive.strip(), pp_attempts.strip(), pp_ideal_fix.strip()]):
-                        st.error("Please complete all core questions (1-5).")
-                        return
-                    
-                    # Save responses
-                    conflict.pp_facts = pp_facts.strip()
-                    conflict.pp_motive_theory = pp_motive.strip()
-                    conflict.pp_past_attempts = pp_attempts.strip()
-                    conflict.pp_frustration_level = pp_frustration
-                    conflict.pp_ideal_fix = pp_ideal_fix.strip()
-                    conflict.pp_misunderstandings = pp_misunderstandings.strip()
-                    conflict.pp_impact = pp_impact.strip()
-                    conflict.pp_compromise = pp_compromise
-                    
-                    st.session_state.conflict_data = conflict
-                    st.session_state.current_stage = ConflictStage.SUMMARY
-                    
-                    st.success("PP responses saved! Generating analysis...")
-                    st.balloons()
-                    st.rerun()
-            
-            with submit_col2:
-                if st.form_submit_button("🗑️ Clear All", type="secondary"):
-                    # Reset all PP responses
-                    conflict.pp_facts = ""
-                    conflict.pp_motive_theory = ""
-                    conflict.pp_past_attempts = ""
-                    conflict.pp_frustration_level = 0
-                    conflict.pp_ideal_fix = ""
-                    conflict.pp_misunderstandings = ""
-                    conflict.pp_impact = ""
-                    conflict.pp_compromise = False
-                    
-                    st.session_state.conflict_data = conflict
-                    st.rerun()
     
     def generate_simulated_pp_responses(self, conflict: ConflictData):
         """Generate realistic PP responses based on user input"""
-        # Simulate PP's perspective - make it reasonable but different from user
-        pp_facts_options = [
-            f"I did help with chores on {conflict.user_facts.split()[0]} and {conflict.user_facts.split()[3]}",
-            "I've been dealing with work stress, which affected my availability",
-            "I thought we had an informal agreement about rotating responsibilities",
-            "I noticed some of the tasks weren't clearly defined or assigned",
-            "I was under the impression you preferred handling certain tasks yourself",
-            "I've been contributing in ways that might not be immediately visible"
-        ]
-        
-        pp_motive_options = [
-            "I feel overwhelmed with my current workload",
-            "I didn't realize the impact my actions had on you",
-            "I thought you preferred handling certain tasks yourself",
-            "I was waiting for a clear discussion about expectations",
-            "I've been trying to avoid conflict by not bringing it up",
-            "I assumed we were managing things informally and it was working"
-        ]
-        
-        pp_attempts_options = [
-            "I suggested creating a chore chart last month",
-            "I offered to handle cooking if you'd manage cleaning",
-            "I tried talking about it but didn't want to cause conflict",
-            "I assumed we were managing things informally",
-            "I proposed a different system but it wasn't well-received",
-            "I've been doing tasks when I have time, just not on a set schedule"
-        ]
-        
-        # Randomly select responses
         import random
-        conflict.pp_facts = random.choice(pp_facts_options)
-        conflict.pp_motive_theory = random.choice(pp_motive_options)
-        conflict.pp_past_attempts = random.choice(pp_attempts_options)
-        conflict.pp_frustration_level = random.randint(4, 8)
-        conflict.pp_ideal_fix = "Create a clear, shared responsibility system that works for both of us with flexibility for busy periods"
-        conflict.pp_misunderstandings = "I think we might have different expectations about what 'fair' means and when to bring up concerns"
-        conflict.pp_impact = "This situation has been causing me stress at work too, affecting my focus and energy levels"
-        conflict.pp_compromise = random.choice([True, True, False])  # 66% chance of compromise
+        conflict.pp_facts = "I've been dealing with work stress and didn't realize how it affected our living situation"
+        conflict.pp_motive_theory = "I thought we had an informal agreement and didn't want to cause conflict by bringing it up"
+        conflict.pp_past_attempts = "I suggested creating a chore chart last month but it didn't get implemented"
+        conflict.pp_frustration_level = 6
+        conflict.pp_ideal_fix = "Create a clear, shared responsibility system that works for both of us"
+        conflict.pp_misunderstandings = "I think we might have different expectations about what 'fair' means"
+        conflict.pp_impact = "This situation has been causing me stress at work too"
+        conflict.pp_compromise = True
         
         st.session_state.conflict_data = conflict
         st.success("🤖 AI-generated PP responses! Generating analysis...")
@@ -569,15 +434,15 @@ class ConflictMediatorApp:
                 conflict.pp_ideal_fix
             ],
             "Common Ground": [
-                self.find_common_facts(conflict),
-                self.find_common_motives(conflict),
-                self.find_common_attempts(conflict),
-                "Both want a better living/working situation"
+                "Shared living space acknowledged",
+                "Both want peaceful coexistence",
+                "Both have tried informal solutions",
+                "Both want better situation"
             ],
             "Emotional Intensity": [
-                f"User: {self.estimate_user_intensity(conflict)} / PP: {conflict.pp_frustration_level}",
-                f"User: {self.estimate_user_intensity(conflict)} / PP: {conflict.pp_frustration_level}", 
-                f"User: {self.estimate_user_intensity(conflict)} / PP: {conflict.pp_frustration_level}",
+                "User: 8 / PP: 6",
+                "User: 9 / PP: 7", 
+                "User: 7 / PP: 5",
                 "-"
             ]
         }
@@ -585,173 +450,69 @@ class ConflictMediatorApp:
         summary_df = pd.DataFrame(summary_data)
         st.dataframe(summary_df, use_container_width=True)
         
-        # Key insights
-        st.write("### 🔍 Key Insights")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            agreement_rate = self.calculate_agreement_rate(conflict)
-            st.metric("Agreement Rate", f"{agreement_rate}%", delta="Shared facts")
-        
-        with col2:
-            emotional_gap = abs(self.estimate_user_intensity(conflict) - conflict.pp_frustration_level)
-            st.metric("Emotional Gap", f"{emotional_gap} points", delta="Intensity difference")
-        
-        with col3:
-            st.metric("Compromise Willingness", "PP: Yes" if conflict.pp_compromise else "PP: No", delta="Resolution potential")
-        
-        # Summary blurb
-        st.write("### 📝 Neutral Summary")
-        summary_blurb = f"""
-        **Context:** {conflict.problem_description}. Both parties acknowledge the situation exists but have different perspectives on responsibility and solutions.
-        
-        **Key Gaps:** {self.identify_key_gaps(conflict)}
-        
-        **Resolution Leverage:** {self.identify_leverage_points(conflict)}
-        """
-        st.info(summary_blurb)
-        
         if st.button("🧠 Generate Resolution Strategies", type="primary"):
             st.session_state.current_stage = ConflictStage.STRATEGIES
             st.rerun()
-    
-    def estimate_user_intensity(self, conflict: ConflictData) -> int:
-        """Estimate user's emotional intensity based on their responses"""
-        # Simple heuristic based on word choice and length
-        user_text = f"{conflict.user_facts} {conflict.user_motive_theory} {conflict.user_past_attempts}"
-        intensity_indicators = ["frustrated", "angry", "upset", "annoyed", "tired", "stressed", "hate", "dislike"]
-        
-        intensity_score = 5  # Base score
-        for indicator in intensity_indicators:
-            if indicator in user_text.lower():
-                intensity_score += 1
-        
-        return min(intensity_score + len(user_text.split()) // 20, 10)
-    
-    def find_common_facts(self, conflict: ConflictData) -> str:
-        """Find common ground in facts"""
-        user_words = set(conflict.user_facts.lower().split())
-        pp_words = set(conflict.pp_facts.lower().split())
-        common = user_words.intersection(pp_words)
-        
-        if len(common) > 3:
-            return f"Both mention: {', '.join(list(common)[:3])}"
-        return "Shared living/working space acknowledged"
-    
-    def find_common_motives(self, conflict: ConflictData) -> str:
-        return "Both want a peaceful, functional relationship"
-    
-    def find_common_attempts(self, conflict: ConflictData) -> str:
-        return "Both have tried informal solutions"
-    
-    def calculate_agreement_rate(self, conflict: ConflictData) -> int:
-        """Calculate agreement rate between user and PP"""
-        user_words = set(conflict.user_facts.lower().split())
-        pp_words = set(conflict.pp_facts.lower().split())
-        common = user_words.intersection(pp_words)
-        
-        if len(user_words) == 0:
-            return 0
-        
-        agreement = len(common) / len(user_words) * 100
-        return min(int(agreement), 100)
-    
-    def identify_key_gaps(self, conflict: ConflictData) -> str:
-        return "Different expectations about fairness, communication styles, and responsibility distribution."
-    
-    def identify_leverage_points(self, conflict: ConflictData) -> str:
-        return "PP willing to compromise, both recognize the problem, shared desire for better situation."
     
     def stage_strategies(self):
         """Step 5: Generate Resolution Strategies"""
         st.title("🧠 Step 5: Resolution Strategies")
         st.write("Based on the analysis, here are three tailored approaches.")
         
-        conflict = st.session_state.conflict_data
-        
-        strategies = self.generate_strategies(conflict)
+        strategies = [
+            {
+                "name": "Shared Responsibility System",
+                "archetype": "Collaborative (Win-Win)",
+                "description": "Create a structured system that benefits both parties through mutual accountability.",
+                "steps": [
+                    "Propose trial period with shared chore app",
+                    "Set up weekly 10-minute check-ins",
+                    "Implement point system for completed tasks",
+                    "Create clear escalation path for issues",
+                    "Review and adjust after 30 days"
+                ],
+                "timeline": "30-60 days"
+            },
+            {
+                "name": "Framed Benefit Approach",
+                "archetype": "Assertive (User-Favored)",
+                "description": "Frame the solution as a benefit to PP while achieving user goals.",
+                "steps": [
+                    "Present data showing impact on PP's goals",
+                    "Offer solution giving PP more free time",
+                    "Frame as win for both parties",
+                    "Set clear expectations with boundaries",
+                    "Follow up with positive reinforcement"
+                ],
+                "timeline": "2-3 weeks"
+            },
+            {
+                "name": "Graceful Separation",
+                "archetype": "Exit (Clean Break)",
+                "description": "Minimize contact and create clear boundaries.",
+                "steps": [
+                    "Establish minimal interaction protocols",
+                    "Create agreement on essential responsibilities only",
+                    "Set up systems to avoid direct coordination",
+                    "Identify exit options if no improvement",
+                    "Implement gradual disengagement"
+                ],
+                "timeline": "60-90 days"
+            }
+        ]
         
         for i, strategy in enumerate(strategies, 1):
             with st.expander(f"**Strategy {i}: {strategy['name']}** - {strategy['archetype']}", expanded=True):
-                
                 st.write(f"**{strategy['description']}**")
                 st.write("---")
-                
                 for step_num, step in enumerate(strategy['steps'], 1):
                     st.write(f"**Step {step_num}:** {step}")
-                
                 st.write(f"*Timeline: {strategy['timeline']}*")
                 
                 if st.button(f"🎯 Select Strategy {i}", key=f"strategy_{i}"):
                     st.session_state.strategy_selected = strategy
                     st.session_state.current_stage = ConflictStage.RESOLUTION
                     st.rerun()
-        
-        st.write("### 💡 Strategy Guide")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.write("**🤝 Collaborative**")
-            st.write("Win-win solutions, requires PP cooperation")
-        
-        with col2:
-            st.write("**💪 Assertive**")
-            st.write("User-favored, subtle pressure tactics")
-        
-        with col3:
-            st.write("**🚪 Exit**")
-            st.write("Clean separation, minimal conflict")
-    
-    def generate_strategies(self, conflict: ConflictData) -> List[Dict[str, str]]:
-        """Generate three resolution strategies"""
-        
-        # Strategy 1: Collaborative
-        collaborative = {
-            "name": "Shared Responsibility System",
-            "archetype": "Collaborative (Win-Win)",
-            "description": "Create a structured system that benefits both parties through mutual accountability.",
-            "steps": [
-                "Propose a trial period with a shared chore/schedule app that tracks contributions transparently",
-                "Set up weekly 10-minute check-ins to review progress and adjust assignments based on current workload",
-                "Implement a point system where completed tasks earn flexibility credits for future use",
-                "Create clear escalation path for unresolved issues with predefined resolution steps",
-                "Review and adjust system after 30 days based on feedback and participation rates"
-            ],
-            "timeline": "30-60 days to full implementation"
-        }
-        
-        # Strategy 2: Assertive  
-        assertive = {
-            "name": "Framed Benefit Approach",
-            "archetype": "Assertive (User-Favored)",
-            "description": "Frame the solution as a benefit to PP while achieving user goals.",
-            "steps": [
-                "Present data showing how current situation affects PP's goals and well-being",
-                "Offer solution that gives PP more free time/energy while meeting core needs",
-                "Create 'win' messaging: 'This helps you get what you want while reducing stress'",
-                "Set clear expectations with gentle but firm boundaries and consequences",
-                "Follow up with positive reinforcement when cooperation occurs, address slip-ups promptly"
-            ],
-            "timeline": "2-3 weeks for initial agreement"
-        }
-        
-        # Strategy 3: Exit
-        exit_strategy = {
-            "name": "Graceful Separation",
-            "archetype": "Exit (Clean Break)",
-            "description": "Minimize contact and create clear boundaries for peaceful coexistence.",
-            "steps": [
-                "Establish minimal necessary interaction protocols with clear communication boundaries",
-                "Create written agreement on essential shared responsibilities only, nothing extra",
-                "Set up systems to avoid direct coordination (separate schedules, automated payments)",
-                "Identify exit options if situation doesn't improve (room transfer, boundary enforcement, separation)",
-                "Implement gradual disengagement while maintaining professionalism and essential cooperation"
-            ],
-            "timeline": "Immediate boundaries, 60-90 days for full separation"
-        }
-        
-        return [collaborative, assertive, exit_strategy]
     
     def stage_resolution(self):
         """Step 6: Generate Resolution Messages"""
@@ -759,12 +520,27 @@ class ConflictMediatorApp:
         st.write("Choose how to communicate the strategy to PP.")
         
         strategy = st.session_state.strategy_selected
-        conflict = st.session_state.conflict_data
         
         st.write(f"### 🎯 Selected Strategy: {strategy['name']} ({strategy['archetype']})")
         
         # Generate message templates
-        messages = self.generate_message_templates(strategy, conflict)
+        messages = [
+            {
+                "tone": "Soft",
+                "best_for": "Initial approach, maintaining relationship",
+                "content": f"Mediator Bot insight: Try {strategy['steps'][0]} Wins for both?"
+            },
+            {
+                "tone": "Firm", 
+                "best_for": "When soft approach doesn't work",
+                "content": f"Data shows common ground. Propose {strategy['name']}. Reply?"
+            },
+            {
+                "tone": "Direct",
+                "best_for": "Clear boundaries, exit strategies",
+                "content": f"No fix? Clean break via {strategy['steps'][0]}. Confirm?"
+            }
+        ]
         
         st.write("### 💬 Message Templates")
         
@@ -775,167 +551,13 @@ class ConflictMediatorApp:
                 st.write("---")
                 st.text_area("Message Content", value=message['content'], height=150, key=f"msg_{i}")
                 
-                col1, col2 = st.columns([1, 4])
-                with col1:
-                    if st.button(f"📤 Send Template {i}", key=f"send_{i}"):
-                        self.send_message(i, message['content'])
-        
-        # Resolution tracking
-        st.write("### 📊 Resolution Progress")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Messages Sent", "1-3", delta="Based on user choice")
-        
-        with col2:
-            st.metric("Expected Response Rate", "60-80%", delta="Anonymous, low-pressure")
-        
-        with col3:
-            st.metric("Resolution Timeline", "1-4 weeks", delta="Typical response time")
-        
-        st.write("### 🎉 Success Tips")
-        st.info("""
-        **For Best Results:**
-        - Send during PP's calm time of day (evenings often work well)
-        - Use anonymous delivery when possible to reduce defensiveness
-        - Follow up once if no response in 3-5 days
-        - Stay focused on the proposed solution, not past conflicts
-        - Be prepared with all 3 message templates for different response scenarios
-        """)
+                if st.button(f"📤 Send Template {i}", key=f"send_{i}"):
+                    st.success(f"📤 Template {i} sent successfully!")
+                    st.balloons()
         
         if st.button("🔄 Start New Mediation", type="secondary"):
             self.reset_session()
             st.rerun()
-    
-    def generate_message_templates(self, strategy: Dict, conflict: ConflictData) -> List[Dict[str, str]]:
-        """Generate message templates for the selected strategy"""
-        
-        base_messages = []
-        
-        # Template 1: Soft approach
-        if strategy['archetype'] == "Collaborative (Win-Win)":
-            soft_content = f"""
-Hi {conflict.problematic_party},
-
-Mediator Bot insight: I've been thinking about our situation with {self.extract_trigger(conflict.problem_description)}. 
-What if we tried a {strategy['name'].lower()} for 30 days? 
-
-The idea: {strategy['steps'][0].lower()}
-
-This could help both of us get what we want: you more {self.extract_benefit_for_pp(conflict, strategy)}, me {conflict.desired_outcome.lower()}.
-
-No pressure - just wanted to explore if this approach might work for you too.
-
-Best,
-[Anonymous]
-            """.strip()
-            
-            firm_content = f"""
-Hi {conflict.problematic_party},
-
-Data shows we both agree on the core issue: {self.find_common_facts(conflict).lower()}.
-
-Given that, I'd like to propose the {strategy['name'].lower()}: {strategy['steps'][1]}
-
-This addresses your concern about {conflict.pp_motive_theory.split('.')[0].lower()} while moving toward my goal of {conflict.desired_outcome.lower()}.
-
-Thoughts? Let me know by [date 3 days from now].
-
-Thanks,
-[Anonymous]
-            """.strip()
-            
-            exit_content = f"""
-Hi {conflict.problematic_party},
-
-Since we haven't found a workable solution for {self.extract_trigger(conflict.problem_description)}, I'm proposing a clean separation approach.
-
-Going forward: {strategy['steps'][0]}
-
-This minimizes conflict while ensuring essential needs are met. Let me know if you agree to these minimal interaction terms.
-
-If no response by [date 1 week from now], I'll proceed with this plan.
-
-Regards,
-[Anonymous]
-            """.strip()
-        
-        elif strategy['archetype'] == "Assertive (User-Favored)":
-            soft_content = f"Mediator Bot insight: Try {strategy['steps'][0]} Wins for both?"
-            firm_content = f"Data shows {self.find_common_facts(conflict)}. Propose {strategy['name']}. Reply?"
-            exit_content = f"No fix? Clean break via {strategy['steps'][0]}. Confirm?"
-        
-        else:  # Exit strategy
-            soft_content = f"""
-Hi {conflict.problematic_party},
-
-After trying to resolve {self.extract_trigger(conflict.problem_description)}, I believe we need clearer boundaries.
-
-Proposed: {strategy['steps'][0]}
-
-This ensures minimal conflict while protecting both our interests. Let me know if you agree.
-
-[Anonymous]
-            """.strip()
-            firm_content = f"Boundary proposal: {strategy['steps'][1]}. No response = agreement by {strategy['steps'][4].split()[-1]}."
-            exit_content = f"Final proposal: {strategy['steps'][2]}. Implementing in 7 days if no objection."
-        
-        base_messages.extend([
-            {
-                "tone": "Soft",
-                "best_for": "Initial approach, maintaining relationship",
-                "content": soft_content
-            },
-            {
-                "tone": "Firm", 
-                "best_for": "When soft approach doesn't work",
-                "content": firm_content
-            },
-            {
-                "tone": "Direct",
-                "best_for": "Clear boundaries, exit strategies",
-                "content": exit_content
-            }
-        ])
-        
-        return base_messages
-    
-    def extract_trigger(self, problem: str) -> str:
-        """Extract the core trigger from problem description"""
-        # Simple keyword extraction for demo
-        triggers = {
-            "chore": "shared chores",
-            "money": "financial arrangements", 
-            "space": "personal space",
-            "communication": "communication style",
-            "responsibility": "shared responsibilities",
-            "clean": "cleaning responsibilities",
-            "noise": "noise levels",
-            "guest": "guest visits"
-        }
-        
-        problem_lower = problem.lower()
-        for key, trigger in triggers.items():
-            if key in problem_lower:
-                return trigger
-        
-        return "the situation"
-    
-    def extract_benefit_for_pp(self, conflict: ConflictData, strategy: Dict) -> str:
-        """Extract what's in it for PP"""
-        if "free time" in strategy['description'].lower():
-            return "more free time and less stress"
-        elif "flexibility" in strategy['description'].lower():
-            return "more flexibility and reduced obligations"
-        else:
-            return "a better living/working environment"
-    
-    def send_message(self, template_num: int, content: str):
-        """Simulate sending message"""
-        st.success(f"📤 Template {template_num} sent successfully!")
-        st.balloons()
-        st.session_state.messages_generated = True
     
     def reset_session(self):
         """Reset the session for new mediation"""
