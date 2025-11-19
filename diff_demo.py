@@ -74,7 +74,6 @@ class ConflictMediatorApp:
             layout="wide",
             initial_sidebar_state="expanded"
         )
-    
     def initialize_session_state(self):
         """Initialize session state variables"""
         if 'conflict_data' not in st.session_state:
@@ -92,7 +91,7 @@ class ConflictMediatorApp:
         if 'pp_simulation_choice' not in st.session_state:
             st.session_state.pp_simulation_choice = None
     
-    def create_navbar(self):
+   def create_navbar(self):
         """Create navigation for the mediation flow"""
         st.markdown("""
         <style>
@@ -165,9 +164,21 @@ class ConflictMediatorApp:
         </div>
         """, unsafe_allow_html=True)
         
-        # Stage progress indicator
+        # Stage progress indicator - with error handling
         stages = list(ConflictStage)
-        current_index = stages.index(st.session_state.current_stage)
+        
+        # Ensure current_stage is valid
+        current_stage = st.session_state.get('current_stage', ConflictStage.IDENTIFICATION)
+        if not isinstance(current_stage, ConflictStage):
+            current_stage = ConflictStage.IDENTIFICATION
+            st.session_state.current_stage = current_stage
+        
+        try:
+            current_index = stages.index(current_stage)
+        except ValueError:
+            # Fallback if enum value is corrupted
+            current_index = 0
+            st.session_state.current_stage = ConflictStage.IDENTIFICATION
         
         st.write("### 📊 Mediation Progress")
         
@@ -189,7 +200,7 @@ class ConflictMediatorApp:
             """, unsafe_allow_html=True)
     
     def stage_identification(self):
-        """Step 1: Problem Identification"""
+          """Step 1: Problem Identification"""    
         st.title("📋 Step 1: Problem Identification")
         st.write("Let's understand your conflict situation.")
         
@@ -987,3 +998,4 @@ This ensures minimal conflict while protecting both our interests. Let me know i
 if __name__ == "__main__":
     app = ConflictMediatorApp()
     app.run()
+
