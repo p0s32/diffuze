@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-
+# REMOVED: import plotly.express as px (not needed for core functionality)
 from typing import Dict, List, Optional, Any
 import json
 import uuid
@@ -89,6 +89,8 @@ class ConflictMediatorApp:
             st.session_state.messages_generated = False
         if 'show_manual_pp' not in st.session_state:
             st.session_state.show_manual_pp = False
+        if 'pp_simulation_choice' not in st.session_state:
+            st.session_state.pp_simulation_choice = None
     
     def create_navbar(self):
         """Create navigation for the mediation flow"""
@@ -984,5 +986,4 @@ This ensures minimal conflict while protecting both our interests. Let me know i
 # Run the application
 if __name__ == "__main__":
     app = ConflictMediatorApp()
-
     app.run()
