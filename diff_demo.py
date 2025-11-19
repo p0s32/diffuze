@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-# REMOVED: import plotly.express as px (not needed for core functionality)
 from typing import Dict, List, Optional, Any
 import json
 import uuid
@@ -74,6 +73,7 @@ class ConflictMediatorApp:
             layout="wide",
             initial_sidebar_state="expanded"
         )
+    
     def initialize_session_state(self):
         """Initialize session state variables"""
         if 'conflict_data' not in st.session_state:
@@ -91,7 +91,7 @@ class ConflictMediatorApp:
         if 'pp_simulation_choice' not in st.session_state:
             st.session_state.pp_simulation_choice = None
     
-   def create_navbar(self):
+    def create_navbar(self):
         """Create navigation for the mediation flow"""
         st.markdown("""
         <style>
@@ -200,7 +200,7 @@ class ConflictMediatorApp:
             """, unsafe_allow_html=True)
     
     def stage_identification(self):
-          """Step 1: Problem Identification"""    
+        """Step 1: Problem Identification"""
         st.title("📋 Step 1: Problem Identification")
         st.write("Let's understand your conflict situation.")
         
@@ -960,42 +960,14 @@ This ensures minimal conflict while protecting both our interests. Let me know i
             self.stage_user_questions()
         elif current_stage == ConflictStage.PP_INVITATION:
             self.stage_pp_invitation()
-        elif current_stage == ConflictStage.PP_RESPONSES:
-            self.stage_pp_responses()
         elif current_stage == ConflictStage.SUMMARY:
             self.stage_summary()
         elif current_stage == ConflictStage.STRATEGIES:
             self.stage_strategies()
         elif current_stage == ConflictStage.RESOLUTION:
             self.stage_resolution()
-        
-        # Progress navigation
-        self.render_progress_navigation()
-    
-    def render_progress_navigation(self):
-        """Render navigation controls"""
-        st.write("---")
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col1:
-            if st.session_state.current_stage != ConflictStage.IDENTIFICATION:
-                if st.button("⬅️ Previous Step", type="secondary"):
-                    self.navigate_back()
-        
-        with col2:
-            if st.session_state.current_stage != ConflictStage.RESOLUTION:
-                st.write(f"*Current: {st.session_state.current_stage.value}*")
-            else:
-                st.write("*Mediation Complete - Ready to Send Messages*")
-        
-        with col3:
-            if st.session_state.current_stage == ConflictStage.RESOLUTION:
-                if st.button("🔄 New Mediation", type="primary"):
-                    self.reset_session()
 
 # Run the application
 if __name__ == "__main__":
     app = ConflictMediatorApp()
     app.run()
-
